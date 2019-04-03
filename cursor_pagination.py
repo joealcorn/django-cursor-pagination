@@ -15,9 +15,10 @@ class Tuple(Func):
     output_field = TupleField()
 
     def as_mysql(self, compiler, connection):
-        self.function = 'CONCAT_WS'
-        self.template = "%(function)s('', %(expressions)s)"
-        return super(Tuple, self).as_sql(compiler, connection)
+        self.function = 'LPAD(CONCAT_WS'
+        self.template = "%(function)s('', %(expressions)s), 100, '0')"
+        res = super(Tuple, self).as_sql(compiler, connection)
+        return res
 
 
 class InvalidCursor(Exception):
@@ -97,7 +98,7 @@ class CursorPaginator(object):
 
         is_reversed = self.ordering[0].startswith('-')
         queryset = queryset.annotate(_cursor=Tuple(*[o.lstrip('-') for o in self.ordering]))
-        current_position = [Value(p, output_field=TextField()) for p in position]
+        current_position = [Value(p.zfill(100), output_field=TextField()) for p in position]
         if reverse != is_reversed:
             return queryset.filter(_cursor__lt=Tuple(*current_position))
         return queryset.filter(_cursor__gt=Tuple(*current_position))
